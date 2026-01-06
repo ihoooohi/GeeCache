@@ -1,20 +1,20 @@
 package geecache
 
-//this byteview need to be immutable
-type byteview struct {
+//this Byteview need to be immutable
+type Byteview struct {
 	b []byte
 }
 
-func (v byteview) Len() int {
+func (v Byteview) Len() int {
 	return len(v.b)
 }
 
-func (v byteview) ByteSlice() []byte {
+func (v Byteview) ByteSlice() []byte {
 	return  cloneBytes(v.b)
 	
 }
 
-func (v byteview) String() string {
+func (v Byteview) String() string {
 	return string(v.b)
 }
 

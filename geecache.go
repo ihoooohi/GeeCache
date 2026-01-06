@@ -1,6 +1,10 @@
 package geecache
 
-import "sync"
+import (
+	"fmt"
+	"log"
+	"sync"
+)
 
 //接口型函数
 type Getter interface {
@@ -25,7 +29,7 @@ var(
 	groups = make(map[string]*Group)
 )
 
-func NewGroup(name string, getter Getter, mainCache cache) *Group {
+func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 	if getter == nil {
 		panic("nil getter")
 	}
@@ -35,7 +39,7 @@ func NewGroup(name string, getter Getter, mainCache cache) *Group {
 	g := &Group{
 		name: name,
 		getter: getter,
-		mainCache: mainCache,
+		mainCache: cache{cacheBytes: cacheBytes},
 	}
 	groups[name] = g
 	return g
@@ -47,4 +51,39 @@ func GetGroup(name string) *Group {
 	g := groups[name]
 	return g
 }
+
+//Group的Get方法
+func (g *Group) Get(key string) (Byteview, error) {
+	if key == "" {
+		return Byteview{}, fmt.Errorf("key is required")
+	}
+
+	if v, ok := g.mainCache.get(key); ok {
+		log.Println("[GeeCache] hit")
+		return v,nil
+	}
+
+	return g.load(key)
+
+}
+
+func (g *Group) load(key string) (Byteview, error) {
+	return g.getLocally(key)
+}
+
+func (g *Group) getLocally(key string) (Byteview, error) {
+	bytes, err := g.getter.Get(key)
+	if err != nil {
+		return Byteview{}, err
+	}
+
+	value := Byteview{b: cloneBytes(bytes)}
+	g.populateCache(key, value)
+	return value, nil
+}
+
+func (g *Group) populateCache(key string, value Byteview) {
+	g.mainCache.add(key, value)
+}
+
 
