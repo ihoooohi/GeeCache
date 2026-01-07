@@ -5,6 +5,10 @@ import(
 	"geecache/lru"
 )
 
+/*
+并发控制
+*/
+
 type cache struct {
 	mu sync.Mutex
 	lru *lru.Cache
