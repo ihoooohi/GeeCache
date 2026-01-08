@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -12,6 +13,10 @@ const defaultBasePath = "/_geecache/"
 type HTTPPool struct {
 	self string //记录地址，包括ip/主机名 + 端口号
 	basePath string //节点通信前缀
+}
+
+type httpGetter struct {
+	baseURL string
 }
 
 func NewHTTPPool(s string) *HTTPPool {
@@ -57,4 +62,13 @@ func (h *HTTPPool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(value.ByteSlice())
 	
 
+}
+
+func (h *httpGetter) Get(group string, key string) ([]byte, error) {
+	u := fmt.Sprintf(
+		"%s%s/%s",
+		h.baseURL,
+		url.QueryEscape(group),
+
+	)
 }
