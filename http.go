@@ -2,17 +2,27 @@ package geecache
 
 import (
 	"fmt"
+	"geecache/consistenthash"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 )
 
-const defaultBasePath = "/_geecache/"
+const ( 
+	defaultBasePath = "/_geecache/"
+	defaultReplicas = 50
+)
 
 type HTTPPool struct {
 	self string //记录地址，包括ip/主机名 + 端口号
 	basePath string //节点通信前缀
+	mu sync.Mutex
+	peers *consistenthash.HashRing
+	httpGetters map[string]*httpGetter
+
 }
 
 type httpGetter struct {
@@ -64,6 +74,20 @@ func (h *HTTPPool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
+//新建/更新httppool中的哈希环
+func (h *HTTPPool) Set(peers ...string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.peers = consistenthash.New(defaultReplicas, nil)
+	h.peers.Add(peers...)
+	h.httpGetters = make(map[string]*httpGetter, len(peers))
+	for _, peer := range peers {
+		h.httpGetters[peer] = &httpGetter{baseURL: peer + h.basePath}
+	}
+}
+
+
+
 func (h *httpGetter) Get(group string, key string) ([]byte, error) {
 	u := fmt.Sprintf(
 		"%s%s/%s",
@@ -71,4 +95,23 @@ func (h *httpGetter) Get(group string, key string) ([]byte, error) {
 		url.QueryEscape(group),
 		url.QueryEscape(key),
 	)
+
+	res, err:= http.Get(u)
+	if err != nil {
+		return nil, err
+	}
+
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("server returned", res.Status)
+	}
+
+	bytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes, nil
+
 }
