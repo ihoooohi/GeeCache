@@ -69,6 +69,6 @@ func (h *httpGetter) Get(group string, key string) ([]byte, error) {
 		"%s%s/%s",
 		h.baseURL,
 		url.QueryEscape(group),
-
+		url.QueryEscape(key),
 	)
 }

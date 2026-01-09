@@ -22,7 +22,7 @@ func (c *cache) add(key string, val Byteview) {
 		c.lru = lru.New(c.cacheBytes, nil)
 	}
 	c.lru.Add(key, val)
-
+	
 }
 
 func (c *cache) get(key string) (val Byteview, ok bool) {
