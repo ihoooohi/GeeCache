@@ -22,6 +22,7 @@ type Group struct {
 	name string
 	getter Getter
 	mainCache cache
+	peers PeerPicker
 }
 
 var(
@@ -29,6 +30,7 @@ var(
 	groups = make(map[string]*Group)
 )
 
+//---------------初始化--------------------
 func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 	if getter == nil {
 		panic("nil getter")
@@ -45,6 +47,13 @@ func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 	return g
 }
 
+func (g *Group) RegisterPeers(peers PeerPicker) {
+	if g.peers != nil {
+		panic("RegisterPeerPicker called more than once")
+	}
+	g.peers = peers
+}
+//----------------------------------------
 func GetGroup(name string) *Group {
 	mu.RLock()
 	defer mu.RUnlock()
@@ -68,7 +77,24 @@ func (g *Group) Get(key string) (Byteview, error) {
 }
 
 func (g *Group) load(key string) (Byteview, error) {
+	if g.peers != nil {
+		if peer, ok := g.peers.PickPeer(key); ok {
+			if value, err := g.getRemotely(peer, key); err == nil {
+				return value, nil
+			}
+		}
+	}
+	
 	return g.getLocally(key)
+}
+
+func (g *Group) getRemotely(peer PeerGetter, key string) (Byteview, error) {
+	bytes, err := peer.Get(g.name, key)
+	if err != nil {
+		return Byteview{}, err
+	}
+	return Byteview{b: bytes}, nil
+
 }
 
 func (g *Group) getLocally(key string) (Byteview, error) {

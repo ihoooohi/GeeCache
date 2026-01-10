@@ -28,13 +28,26 @@ type HTTPPool struct {
 type httpGetter struct {
 	baseURL string
 }
-
+// -----------------------初始化------------------
 func NewHTTPPool(s string) *HTTPPool {
 	return &HTTPPool{
 		self: s,
 		basePath: defaultBasePath,
 	}
 }
+
+//新建/更新httppool中的哈希环
+func (h *HTTPPool) Set(peers ...string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.peers = consistenthash.New(defaultReplicas, nil)
+	h.peers.Add(peers...)
+	h.httpGetters = make(map[string]*httpGetter, len(peers))
+	for _, peer := range peers {
+		h.httpGetters[peer] = &httpGetter{baseURL: peer + h.basePath}
+	}
+}
+//---------------------------------------------
 
 func (h *HTTPPool) Log(format string, v ...any) {
 	log.Printf("[Server %s] %s", h.self,fmt.Sprintf(format, v...) )
@@ -74,18 +87,22 @@ func (h *HTTPPool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
-//新建/更新httppool中的哈希环
-func (h *HTTPPool) Set(peers ...string) {
+
+
+//挑选节点
+func (h *HTTPPool) PickPeer(key string) (PeerGetter, bool) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	h.peers = consistenthash.New(defaultReplicas, nil)
-	h.peers.Add(peers...)
-	h.httpGetters = make(map[string]*httpGetter, len(peers))
-	for _, peer := range peers {
-		h.httpGetters[peer] = &httpGetter{baseURL: peer + h.basePath}
+	if peer := h.peers.Get(key); peer != "" && peer != h.self {
+		return h.httpGetters[peer], true
 	}
+
+	return nil, false
 }
 
+//检查HTTPPool有没有实现PeerPicker接口
+
+var _ PeerPicker = 	(*HTTPPool)(nil)
 
 
 func (h *httpGetter) Get(group string, key string) ([]byte, error) {
