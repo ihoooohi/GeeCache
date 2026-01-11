@@ -2,6 +2,7 @@ package geecache
 
 import (
 	"fmt"
+	"geecache/singleflight"
 	"log"
 	"sync"
 )
@@ -23,6 +24,10 @@ type Group struct {
 	getter Getter
 	mainCache cache
 	peers PeerPicker
+	// use singleflight.Group to make sure that
+	// each key is only fetched once
+	loader *singleflight.Group
+
 }
 
 var(
@@ -42,6 +47,7 @@ func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 		name: name,
 		getter: getter,
 		mainCache: cache{cacheBytes: cacheBytes},
+		loader: &singleflight.Group{},
 	}
 	groups[name] = g
 	return g
@@ -76,16 +82,25 @@ func (g *Group) Get(key string) (Byteview, error) {
 
 }
 
-func (g *Group) load(key string) (Byteview, error) {
-	if g.peers != nil {
-		if peer, ok := g.peers.PickPeer(key); ok {
-			if value, err := g.getRemotely(peer, key); err == nil {
-				return value, nil
+func (g *Group) load(key string) (value Byteview, err error) {
+	viewi, err := g.loader.Do(key, func() (any, error) {
+		if g.peers != nil {
+			if peer, ok := g.peers.PickPeer(key); ok {
+				if value, err := g.getRemotely(peer, key); err == nil {
+					return value, nil
+				}
 			}
-		}
-	}
+		}	
 	
-	return g.getLocally(key)
+		return g.getLocally(key)
+	})
+
+	if err == nil {
+		return viewi.(Byteview), nil
+	}
+
+	return 
+	
 }
 
 func (g *Group) getRemotely(peer PeerGetter, key string) (Byteview, error) {

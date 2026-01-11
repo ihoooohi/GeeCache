@@ -121,7 +121,7 @@ func (h *httpGetter) Get(group string, key string) ([]byte, error) {
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("server returned", res.Status)
+		return nil, fmt.Errorf("server returned:%s", res.Status)
 	}
 
 	bytes, err := io.ReadAll(res.Body)
