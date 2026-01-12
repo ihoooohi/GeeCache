@@ -5,6 +5,7 @@ import (
 	"geecache/singleflight"
 	"log"
 	"sync"
+	pb "geecache/geecachepb"
 )
 
 //接口型函数
@@ -104,11 +105,23 @@ func (g *Group) load(key string) (value Byteview, err error) {
 }
 
 func (g *Group) getRemotely(peer PeerGetter, key string) (Byteview, error) {
-	bytes, err := peer.Get(g.name, key)
+	// bytes, err := peer.Get(g.name, key)
+	// if err != nil {
+	// 	return Byteview{}, err
+	// }
+	// return Byteview{b: bytes}, nil
+
+	//使用protobuf
+	req := &pb.Request{
+		Group: g.name,
+		Key: key,
+	}
+	res := &pb.Response{}
+	err := peer.Get(req, res)
 	if err != nil {
 		return Byteview{}, err
 	}
-	return Byteview{b: bytes}, nil
+	return	Byteview{b: res.Value,}, nil
 
 }
 

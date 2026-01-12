@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	pb "geecache/geecachepb"
+	"google.golang.org/protobuf/proto"
 )
 
 const ( 
@@ -81,8 +83,20 @@ func (h *HTTPPool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//使用protobuf
+	body, err := proto.Marshal(&pb.Response{Value: value.ByteSlice()})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Write(value.ByteSlice())
+
+	//裸传字节
+	// w.Write(value.ByteSlice())
+
+	//传protobuf
+	w.Write(body)
 	
 
 }
@@ -100,35 +114,69 @@ func (h *HTTPPool) PickPeer(key string) (PeerGetter, bool) {
 	return nil, false
 }
 
-//检查HTTPPool有没有实现PeerPicker接口
-
-var _ PeerPicker = 	(*HTTPPool)(nil)
 
 
-func (h *httpGetter) Get(group string, key string) ([]byte, error) {
+//---------------用protobuf前--------------------
+
+// func (h *httpGetter) Get(group string, key string) ([]byte, error) {
+// 	u := fmt.Sprintf(
+// 		"%s%s/%s",
+// 		h.baseURL,
+// 		url.QueryEscape(group),
+// 		url.QueryEscape(key),
+// 	)
+
+// 	res, err:= http.Get(u)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	defer res.Body.Close()
+
+// 	if res.StatusCode != http.StatusOK {
+// 		return nil, fmt.Errorf("server returned:%s", res.Status)
+// 	}
+
+// 	bytes, err := io.ReadAll(res.Body)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return bytes, nil
+
+// }
+
+//----------------用protobuf后---------------
+
+func (h *httpGetter) Get(in *pb.Request, out *pb.Response) error {
 	u := fmt.Sprintf(
-		"%s%s/%s",
+		"%v%v/%v",
 		h.baseURL,
-		url.QueryEscape(group),
-		url.QueryEscape(key),
+		url.QueryEscape(in.GetGroup()),
+		url.QueryEscape(in.GetKey()),
 	)
-
-	res, err:= http.Get(u)
+	res, err := http.Get(u)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("server returned:%s", res.Status)
+		return fmt.Errorf("server returned: %v", res.Status)
 	}
 
 	bytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("reading response body: %v", err)
 	}
 
-	return bytes, nil
+	if err = proto.Unmarshal(bytes, out); err != nil {
+		return fmt.Errorf("decoding response body: %v", err)
+	}
 
+	return nil
 }
+
+
+//检查HTTPPool有没有实现PeerPicker接口
+var _ PeerPicker = 	(*HTTPPool)(nil)
