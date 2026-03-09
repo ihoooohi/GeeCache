@@ -4,7 +4,9 @@
 
 [![License](https://img.shields.io/badge/License-Unspecified-lightgrey.svg)]()
 [![Language](https://img.shields.io/badge/language-Go-00ADD8.svg)](https://go.dev/)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
+[![Go Version](https://img.shields.io/badge/go-1.25.4-00ADD8.svg)](https://go.dev/doc/devel/release)
+[![Protobuf](https://img.shields.io/badge/protobuf-v1.36.11-blue.svg)](https://pkg.go.dev/google.golang.org/protobuf)
+[![Architecture](https://img.shields.io/badge/architecture-LRU%20%7C%20Consistent%20Hash%20%7C%20Singleflight-informational.svg)]()
 
 [**English**](./README.md) | [**中文**](./README_CN.md)
 
