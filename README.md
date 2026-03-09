@@ -1,6 +1,16 @@
+<div align="center">
+
 # GeeCache
 
-[中文文档](./README.zh-CN.md)
+[![License](https://img.shields.io/badge/License-Unspecified-lightgrey.svg)]()
+[![Language](https://img.shields.io/badge/language-Go-00ADD8.svg)](https://go.dev/)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
+
+[**English**](./README.md) | [**中文**](./README_CN.md)
+
+</div>
+
+---
 
 GeeCache is a lightweight distributed caching framework implemented in Go.
 It demonstrates the core building blocks of a distributed cache system: local LRU storage, consistent hashing for peer selection, HTTP + Protobuf peer communication, and singleflight request coalescing.

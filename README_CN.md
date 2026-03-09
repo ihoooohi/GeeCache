@@ -1,6 +1,16 @@
+<div align="center">
+
 # GeeCache
 
-[English](./README.md)
+[![License](https://img.shields.io/badge/License-Unspecified-lightgrey.svg)]()
+[![Language](https://img.shields.io/badge/language-Go-00ADD8.svg)](https://go.dev/)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
+
+[**English**](./README.md) | [**中文**](./README_CN.md)
+
+</div>
+
+---
 
 GeeCache 是一个用 Go 实现的轻量级分布式缓存框架。
 它演示了分布式缓存系统中的关键能力：本地 LRU 缓存、一致性哈希节点选择、HTTP + Protobuf 节点通信，以及 singleflight 并发请求合并。
